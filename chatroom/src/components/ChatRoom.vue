@@ -32,7 +32,7 @@ export default {
   name : 'ChatRoom',
   setup() {
     let message = ref('');
-    const socket = io('http://localhost:3000');
+    const socket = io('http://localhost:8080');
     const route = useRoute();
     let roomName = route.query.roomName;
     let nickName = route.query.nickName;

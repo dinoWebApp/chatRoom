@@ -19,19 +19,19 @@ const io = require("socket.io")(http, {
 app.use(bodyParser.urlencoded({extended : true}));
 app.use(express.json());
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'chat-room/dist')));
+app.use(express.static(path.join(__dirname, 'chatroom/dist')));
 let db;
 
 MongoClient.connect(process.env.DB_URL, (err, client)=>{
   if (err) return console.log(err);
   db = client.db('chatRoom');
-  http.listen(3000, () => {
+  http.listen(8080, () => {
     console.log('listening on *:3000');
   });
 });
 
 app.get('/', (req, res)=>{
-  res.sendFile(path.join(__dirname, 'chat-room/dist/index.html'));
+  res.sendFile(path.join(__dirname, 'chatroom/dist/index.html'));
 })
 
 io.on('connection', (socket) => {
@@ -59,7 +59,7 @@ io.on('connection', (socket) => {
       return db.collection('chatRecent').findOne({name : 'recentNum'})
     })
     .then((result)=>{
-      let recent = result + 1;
+      let recent = result.id + 1;
       return db.collection('chatRooms').updateOne({roomName : data.roomName}, {$set : {lastMessage : data.message, recent : recent}});
     })
     .then(()=>{
@@ -133,7 +133,7 @@ app.post('/api/enrollChatRoom', (req, res)=>{
 });
 
 app.get('*', (req, res)=>{
-  res.sendFile(path.join(__dirname, 'chat-room/dist/index.html'));
+  res.sendFile(path.join(__dirname, 'chatroom/dist/index.html'));
 });
 
 
