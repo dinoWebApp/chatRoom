@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const http = require('http').createServer(app);
 const MongoClient = require('mongodb').MongoClient;
+const path = require('path');
+
 require('dotenv').config();
 
 
@@ -17,7 +19,7 @@ const io = require("socket.io")(http, {
 app.use(bodyParser.urlencoded({extended : true}));
 app.use(express.json());
 app.use(cors());
-
+app.use(express.static(path.join(__dirname, 'chat-room/dist')));
 let db;
 
 MongoClient.connect(process.env.DB_URL, (err, client)=>{
@@ -28,6 +30,9 @@ MongoClient.connect(process.env.DB_URL, (err, client)=>{
   });
 });
 
+app.get('/', (req, res)=>{
+  res.sendFile(path.join(__dirname, 'chat-room/dist/index.html'));
+})
 
 io.on('connection', (socket) => {
   console.log('a user connected');
@@ -125,7 +130,11 @@ app.post('/api/enrollChatRoom', (req, res)=>{
     console.log(err);
   })
   
-})
+});
+
+app.get('*', (req, res)=>{
+  res.sendFile(path.join(__dirname, 'chat-room/dist/index.html'));
+});
 
 
 
