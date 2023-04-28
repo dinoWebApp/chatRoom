@@ -22,11 +22,11 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'chatroom/dist')));
 let db;
 
-MongoClient.connect('mongodb+srv://kgj:aa8525698**@cluster0.3ldg4pr.mongodb.net/test', (err, client)=>{
+MongoClient.connect(process.env.DB_URL, (err, client)=>{
   if (err) return console.log(err);
   db = client.db('chatRoom');
   http.listen(8080, () => {
-    console.log('listening on *:3000');
+    console.log('listening on *:8080');
   });
 });
 
