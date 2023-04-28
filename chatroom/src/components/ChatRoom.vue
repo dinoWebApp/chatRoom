@@ -80,7 +80,7 @@ export default {
         nickName : nickName
       }
       socket.emit('send', sendData);
-      
+      message.value = '';
     }
 
     function push() {
