@@ -5,7 +5,6 @@ const cors = require('cors');
 const http = require('http').createServer(app);
 const MongoClient = require('mongodb').MongoClient;
 const path = require('path');
-// const pw = process.env.DB_URL
 require('dotenv').config();
 
 
@@ -22,7 +21,7 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'chatroom/dist')));
 let db;
 
-MongoClient.connect(pw, (err, client)=>{
+MongoClient.connect(process.env.DB_URL, (err, client)=>{
   if (err) return console.log(err);
   db = client.db('chatRoom');
   http.listen(8080, () => {
