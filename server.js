@@ -5,7 +5,7 @@ const cors = require('cors');
 const http = require('http').createServer(app);
 const MongoClient = require('mongodb').MongoClient;
 const path = require('path');
-const pw = process.env.DB_URL
+// const pw = process.env.DB_URL
 require('dotenv').config();
 
 
