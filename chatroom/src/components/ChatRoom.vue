@@ -32,7 +32,7 @@ export default {
   name : 'ChatRoom',
   setup() {
     let message = ref('');
-    const socket = io('https://port-0-chatroom-e9btb72mlgz06iov.sel4.cloudtype.app/');
+    const socket = io('https://port-0-chatroom-3nec02mlh4v5clj.sel4.cloudtype.app');
     const route = useRoute();
     let roomName = route.query.roomName;
     let nickName = route.query.nickName;
