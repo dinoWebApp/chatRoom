@@ -78,15 +78,11 @@ io.on('connection', (socket) => {
     console.log('leave room' + data);
     socket.leave(data);
   });
-
-  socket.on('push', (data) => {
-    console.log(data);
-    io.to(data).emit('broadcast', 'push');
-  });
   
   
 });
 
+// 채팅방 목록
 app.get('/api/chatRooms', (req, res)=>{
   db.collection('chatRooms').find().sort({recent : -1}).toArray()
   .then(result=>{
@@ -97,6 +93,7 @@ app.get('/api/chatRooms', (req, res)=>{
   })
 });
 
+// 이전 메세지들 불러오기
 app.get('/api/chatRoom', (req, res)=>{
   let roomName = req.query.roomName;
   db.collection('messages').find({roomName : roomName}).sort({id : 1}).toArray()
@@ -108,6 +105,7 @@ app.get('/api/chatRoom', (req, res)=>{
   })
 })
 
+// 채팅방 등록
 app.post('/api/enrollChatRoom', (req, res)=>{
   console.log(req.body.chatRoomName);
   let recentNum;
