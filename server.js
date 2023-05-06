@@ -18,7 +18,6 @@ const io = require("socket.io")(http, {
 app.use(bodyParser.urlencoded({extended : true}));
 app.use(express.json());
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'chatroom/dist')));
 let db;
 
 MongoClient.connect(process.env.DB_URL, (err, client)=>{
@@ -29,9 +28,7 @@ MongoClient.connect(process.env.DB_URL, (err, client)=>{
   });
 });
 
-app.get('/', (req, res)=>{
-  res.sendFile(path.join(__dirname, 'chatroom/dist/index.html'));
-})
+
 
 io.on('connection', (socket) => {
   console.log('a user connected');
@@ -39,38 +36,78 @@ io.on('connection', (socket) => {
 
   //채팅방 들어가기
   socket.on('join', (data)=>{
-    console.log('join room' + data);
+    console.log('join room ' + data);
     socket.join(data);
   });
 
-  //메세지 보내기
+  //채팅 보내기
   socket.on('send', (data)=>{
-    console.log(data);
-    db.collection('messageId').findOne({name : 'messageId'})
+    db.collection('chatRooms').findOne({roomName : data.roomName})
     .then(result=>{
-      data.id = result.id + 1
-      return db.collection('messages').insertOne(data)
-    })
-    .then(()=>{
-      return db.collection('messageId').updateOne({name : 'messageId'}, {$inc : {id : 1}})
-    })
-    .then(()=>{
-      return db.collection('chatRecent').findOne({name : 'recentNum'})
-    })
-    .then((result)=>{
-      let recent = result.id + 1;
-      return db.collection('chatRooms').updateOne({roomName : data.roomName}, {$set : {lastMessage : data.message, recent : recent}});
-    })
-    .then(()=>{
-      return db.collection('chatRecent').updateOne({name : 'recentNum'}, {$inc : {id : 1}});
-    })
-    .then(()=>{
-      io.to(data.roomName).emit('broadcast', data);
+      if(result) {
+        let curr = new Date();
+        let utc = curr.getTime() + (curr.getTimezoneOffset()*60*1000);
+        let KR_TIME_DIFF = 9*60*60*1000;
+        let kr_curr = new Date(utc + KR_TIME_DIFF);
+        let month = ("0" + (1 + kr_curr.getMonth())).slice(-2);
+        let day = ("0" + kr_curr.getDate()).slice(-2);
+        let hours = ("0" + kr_curr.getHours()).slice(-2);
+        let minutes = ("0" + kr_curr.getMinutes()).slice(-2);
+        let date = (month + '-' + day + ' ' + hours + ':' + minutes);
+        db.collection('chatRooms').updateOne({roomName : data.roomName}, {
+          $push : {
+            chats : 
+            {
+              sendFrom : data.sendFrom,
+              chat : data.chat,
+              chatId : result.lastChatId + 1,
+              date : date
+            }
+          },
+          $inc : {
+            lastChatId : 1
+          }
+        })
+        .then(()=>{
+          io.to(data.roomName).emit('broadcast', {
+            sendFrom : data.sendFrom,
+            chat : data.chat,
+            chatId : result.lastChatId + 1,
+            date : date
+          });
+        })
+        .catch(err=>{
+          console.log(err);
+        });
+      } else {
+        db.collection('chatRooms').insertOne({
+          roomName : data.roomName,
+          chats : [
+            {
+              sendFrom : data.sendFrom,
+              chat : data.chat,
+              chatId : 1,
+              date : date
+            }
+          ],
+          lastChatId : 1
+        })
+        .then(()=>{
+          io.to(data.roomName).emit('broadcast', {
+            sendFrom : data.sendFrom,
+            chat : data.chat,
+            chatId : 1,
+            date : date
+          });
+        })
+        .catch(err=>{
+          console.log(err);
+        });
+      }
     })
     .catch(err=>{
-      console.log(err);
-    })
-    
+      console.log(err)
+    });
   })
 
   // 채팅방 나가기
@@ -78,60 +115,27 @@ io.on('connection', (socket) => {
     console.log('leave room' + data);
     socket.leave(data);
   });
-  
-  
 });
 
-// 채팅방 목록
-app.get('/api/chatRooms', (req, res)=>{
-  db.collection('chatRooms').find().sort({recent : -1}).toArray()
-  .then(result=>{
-    res.send(result);
-  })
-  .catch(err=>{
-    console.log(err);
-  })
-});
 
-// 이전 메세지들 불러오기
-app.get('/api/chatRoom', (req, res)=>{
-  let roomName = req.query.roomName;
-  db.collection('messages').find({roomName : roomName}).sort({id : 1}).toArray()
+//채팅방 로드
+app.get('/chatRoom', (req, res)=>{
+  let unreadChats;
+  db.collection('chatRooms').findOne({roomName : req.query.roomName})
   .then(result=>{
-    res.send(result);
+    unreadChats = result.lastChatId - parseInt(req.query.lastChatId);
+    res.send({
+      roomName : result.roomName,
+      chats : result.chats,
+      unreadChats : unreadChats
+    });
   })
   .catch(err=>{
     console.log(err);
   })
 })
 
-// 채팅방 등록
-app.post('/api/enrollChatRoom', (req, res)=>{
-  console.log(req.body.chatRoomName);
-  let recentNum;
-  db.collection('chatRecent').findOne({name : 'recentNum'})
-  .then(result=>{
-    recentNum = result.id + 1;
-    return db.collection('chatRooms').insertOne({roomName : req.body.chatRoomName, recent : recentNum, lastMessage : '방금 전 생성'});
-  })
-  .then(()=>{
-    return db.collection('chatRecent').updateOne({name : 'recentNum'}, {$inc : {id : 1}});
-  })
-  .then(()=>{
-    return db.collection('chatRooms').find().sort({recent : -1}).toArray()
-  })
-  .then(result=>{
-    res.send(result);
-  })
-  .catch(err=>{
-    console.log(err);
-  })
-  
-});
 
-app.get('*', (req, res)=>{
-  res.sendFile(path.join(__dirname, 'chatroom/dist/index.html'));
-});
 
 
 
