@@ -80,6 +80,15 @@ io.on('connection', (socket) => {
           console.log(err);
         });
       } else {
+        let curr = new Date();
+        let utc = curr.getTime() + (curr.getTimezoneOffset()*60*1000);
+        let KR_TIME_DIFF = 9*60*60*1000;
+        let kr_curr = new Date(utc + KR_TIME_DIFF);
+        let month = ("0" + (1 + kr_curr.getMonth())).slice(-2);
+        let day = ("0" + kr_curr.getDate()).slice(-2);
+        let hours = ("0" + kr_curr.getHours()).slice(-2);
+        let minutes = ("0" + kr_curr.getMinutes()).slice(-2);
+        let date = (month + '-' + day + ' ' + hours + ':' + minutes);
         db.collection('chatRooms').insertOne({
           roomName : data.roomName,
           chats : [
